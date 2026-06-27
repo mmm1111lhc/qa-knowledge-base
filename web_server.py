@@ -13,9 +13,31 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ==================== API ====================
 
+ACCESS_CODE = "1234"  # 默认验证码，可在设置页修改
+
 @app.route("/")
 def index():
     return send_from_directory(".", "templates/index.html")
+
+@app.route("/api/auth", methods=["POST"])
+def api_auth():
+    """验证访问码"""
+    body = request.json or {}
+    code = body.get("code", "")
+    if code == ACCESS_CODE:
+        return jsonify({"ok": True, "role": body.get("role", "student")})
+    return jsonify({"ok": False}), 403
+
+@app.route("/api/setcode", methods=["POST"])
+def api_setcode():
+    """修改验证码（仅老师可操作）"""
+    body = request.json or {}
+    new_code = body.get("code", "").strip()
+    if len(new_code) < 4:
+        return jsonify({"error": "验证码至少4位"}), 400
+    global ACCESS_CODE
+    ACCESS_CODE = new_code
+    return jsonify({"ok": True})
 
 @app.route("/api/questions")
 def api_questions():
