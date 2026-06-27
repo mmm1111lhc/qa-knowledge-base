@@ -12,7 +12,7 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .role-tabs { display:flex; gap:4px; }
 .role-btn { padding:6px 14px; border-radius:16px; border:none; font-size:13px; cursor:pointer; background:rgba(255,255,255,0.2); color:white; font-weight:500; }
 .role-btn.active { background:white; color:#4a90d9; }
-.container { max-width:900px; margin:0 auto; padding:12px; }
+.container { max-width:900px; margin:0 auto; padding:12px; position:relative; z-index:1; }
 
 /* 卡片 */
 .card { background:white; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
@@ -79,10 +79,10 @@ canvas { display:block; width:100%; height:200px; background:white; touch-action
 }
 
 /* 新问题通知 */
-.notify-dot { display:inline-block; width:8px; height:8px; background:#e53935; border-radius:50%; margin-left:4px; }
+.notify-dot { display:inline-block; width:8px; height:8px; background:#e53935; border-radius:50%; margin-left:4px; } .watermark { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; overflow:hidden; } .watermark::before { content:""; position:absolute; top:0; left:0; width:200%; height:200%; background-image:repeating-linear-gradient(45deg, transparent 0, transparent 40px, rgba(74,144,217,0.03) 40px, rgba(74,144,217,0.03) 41px); } .watermark-text { position:fixed; bottom:8px; right:12px; font-size:11px; color:rgba(74,144,217,0.15); pointer-events:none; z-index:9999; font-weight:300; letter-spacing:1px; }
 </style>
 </head>
-<body>
+<body><div class="watermark"></div><div class="watermark-text">请登录</div>
 
 <!-- 顶部导航 -->
 <div class="header">
@@ -98,9 +98,10 @@ canvas { display:block; width:100%; height:200px; background:white; touch-action
   <div class="card" style="max-width:360px;width:100%;text-align:center;">
     <div style="font-size:48px;margin-bottom:12px;">🔐</div>
     <h2 style="margin-bottom:6px;">群问答知识库</h2>
-    <p style="color:#999;font-size:13px;margin-bottom:16px;">请输入验证码开始使用</p>
+    <p style="color:#999;font-size:13px;margin-bottom:16px;">请输入信息开始使用</p>
+    <input type="text" id="login-name" placeholder="输入你的名字/学号（水印用）" style="width:100%;padding:12px;text-align:center;font-size:16px;border:2px solid #4a90d9;border-radius:8px;margin-bottom:8px;outline:none;">
     <input type="password" id="login-code" placeholder="输入验证码" style="width:100%;padding:12px;text-align:center;font-size:18px;border:2px solid #4a90d9;border-radius:8px;margin-bottom:12px;outline:none;">
-    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:12px;font-size:16px;">✅ 验证</button>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:12px;font-size:16px;">✅ 进入</button>
     <p style="color:#999;font-size:12px;margin-top:12px;">联系老师获取验证码</p>
     <div id="login-error" style="color:#e53935;font-size:13px;margin-top:8px;display:none;"></div>
   </div>
@@ -119,6 +120,26 @@ let currentCanvas = null;
 let isDrawing = false;
 let mediaRecorder = null;
 let audioChunks = [];
+let selectedSource = "";
+
+function selectSource(type, el) {
+  document.querySelectorAll("[onclick*='selectSource']").forEach(l => l.style.borderColor = "#ddd");
+  el.style.borderColor = "#4a90d9";
+  selectedSource = type;
+  const detail = document.getElementById("s-source-detail");
+  const input = document.getElementById("s-source-info");
+  detail.style.display = "block";
+  if (type === "讲义") {
+    input.placeholder = "第几页？  如: P23-25";
+    input.value = "";
+  } else if (type === "真题") {
+    input.placeholder = "地区、年份、第几套？  如: 广东2024第2套";
+    input.value = "";
+  } else if (type === "模拟题") {
+    input.placeholder = "机构、第几套、第几题？  如: 粉笔第3套第12题";
+    input.value = "";
+  }
+}
 
 // ── 角色切换 ──
 function setRole(r) {
@@ -356,16 +377,39 @@ function renderStudent(el) {
         <label>🏷 标签（选填，如: 图形推理,资料分析）</label>
         <input type="text" id="s-tags" placeholder="多个用逗号分隔">
       </div>
-      <button class="btn btn-primary" onclick="submitQuestion()" style="width:100%;">✅ 提交问题</button>
+      <div class="form-group">
+        <label>📌 题目来源</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label style="flex:1;padding:8px;border:2px solid #ddd;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;" onclick="selectSource('讲义',this)">
+            <input type="radio" name="source" value="讲义" style="display:none;"> 📖 讲义
+          </label>
+          <label style="flex:1;padding:8px;border:2px solid #ddd;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;" onclick="selectSource('真题',this)">
+            <input type="radio" name="source" value="真题" style="display:none;"> 📝 真题
+          </label>
+          <label style="flex:1;padding:8px;border:2px solid #ddd;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;" onclick="selectSource('模拟题',this)">
+            <input type="radio" name="source" value="模拟题" style="display:none;"> 📋 模拟题
+          </label>
+        </div>
+        <div id="s-source-detail" style="margin-top:8px;display:none;">
+          <input type="text" id="s-source-info" placeholder="" style="font-size:14px;">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="submitQuestion()" style="width:100%;padding:12px;font-size:16px;">✅ 提交问题</button>
     </div>
-    <h3 style="margin:12px 0 8px;">📋 我的问题</h3>
+    <h3 style="margin:12px 0 8px;">🔍 知识库（搜一搜，也许已经有答案了）</h3>
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <input type="text" id="s-search" placeholder="搜索问题..." style="flex:1;padding:8px 12px;font-size:14px;border:1px solid #ddd;border-radius:8px;" oninput="renderStudentQA()">
+    </div>
+    <div id="s-all-qa"></div>
+    <h3 style="margin:12px 0 8px;">📋 我的提问</h3>
     <div id="s-my-questions"></div>
   `;
 
   const sc = initCanvas("s-canvas", "s-tb");
   document.sc = sc;
 
-  // 显示已有问题
+  // 显示所有问答
+  renderStudentQA();
   renderStudentQuestions();
 }
 
@@ -377,6 +421,8 @@ async function submitQuestion() {
     alert("请输入问题、画图或上传图片");
     return;
   }
+  const sourceInfo = document.getElementById("s-source-info").value.trim();
+  const sourceTag = selectedSource ? (selectedSource + (sourceInfo ? "·" + sourceInfo : "")) : "";
 
   // 提交问题
   const result = await api("/api/question", {
@@ -384,7 +430,7 @@ async function submitQuestion() {
     body: JSON.stringify({
       question: q || "(图示题)",
       asker: name || "匿名学员",
-      tags: tags
+      tags: [sourceTag, tags].filter(Boolean).join(",")
     })
   });
 
@@ -408,9 +454,37 @@ async function submitQuestion() {
   document.getElementById("s-question").value = "";
   document.sc.clear();
   document.getElementById("s-tags").value = "";
+  selectedSource = "";
+  document.getElementById("s-source-detail").style.display = "none";
+  document.querySelectorAll("[onclick*='selectSource']").forEach(l => l.style.borderColor = "#ddd");
+  document.getElementById("s-source-info").value = "";
   fileInput.value = "";
   document.getElementById("s-image-preview").style.display = "none";
   loadQuestions();
+}
+
+function renderStudentQA() {
+  const el = document.getElementById("s-all-qa");
+  if (!el) return;
+  const q = document.getElementById("s-search")?.value?.toLowerCase() || "";
+  let list = questions;
+  if (q) list = list.filter(r => (r.question + " " + (r.ta_answer||"") + " " + (r.teacher_supplement||"") + " " + (r.tags||[]).join(" ")).toLowerCase().includes(q));
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📚</div><div>暂无问答'+(q?'，换个关键词试试':'')+'</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(r => `
+    <div class="card">
+      <div class="card-header">
+        <span class="card-role role-student">${r.asker || "匿名"}</span>
+        <span class="card-time">${r.created_at_str || ""}</span>
+      </div>
+      ${showSource(r)}
+      <div class="card-question">❓ ${r.question}</div>
+      ${r.ta_answer ? `<div class="card-answer">👩‍🏫 ${r.ta_answer}</div>` : '<div style="color:#999;font-size:13px;">⏳ 等待解答...</div>'}
+      ${r.teacher_supplement ? `<div class="card-answer" style="border-left:3px solid #ef6c00;">👨‍🏫 ${r.teacher_supplement}</div>` : ""}
+    </div>
+  `).join("");
 }
 
 function renderStudentQuestions() {
@@ -427,6 +501,7 @@ function renderStudentQuestions() {
         <span class="card-role role-student">${q.asker || "匿名"}</span>
         <span class="card-time">${q.created_at_str || ""}</span>
       </div>
+      ${showSource(q)}
       <div class="card-question">❓ ${q.question}</div>
       ${q.ta_answer ? `<div class="card-answer">👩‍🏫 ${q.ta_answer}</div>` : '<div style="color:#999;font-size:13px;">⏳ 等待助教回答...</div>'}
       ${q.teacher_supplement ? `<div class="card-answer">👨‍🏫 ${q.teacher_supplement}</div>` : ""}
@@ -472,6 +547,7 @@ function renderTACard(q) {
         <span class="card-role role-student">${q.asker || "匿名"}</span>
         <span class="card-time">${q.created_at_str || ""}</span>
       </div>
+      ${showSource(q)}
       <div class="card-question">❓ ${q.question}</div>
       ${!q.ta_answer ? `
         <div style="margin-top:8px;">
@@ -542,6 +618,8 @@ function renderTeacherCard(q, needsSupplement) {
         <span class="card-role role-student">${q.asker || "匿名"}</span>
         <span class="card-time">${q.created_at_str || ""}</span>
       </div>
+      ${showSource(q)}
+      ${showSource(q)}
       <div class="card-question">❓ ${q.question}</div>
       <div class="card-answer">👩‍🏫 TA: ${q.ta_answer}</div>
       ${needsSupplement ? `
