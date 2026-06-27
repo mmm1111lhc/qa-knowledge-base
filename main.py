@@ -12,13 +12,13 @@ from database import add_qa, search, delete_qa, update_qa, get_all_tags, count
 
 # ── 主题 ──
 ctk.set_appearance_mode("light")
-BG = "#f5f2ed"
-WHITE = "#ffffff"
-ACCENT = "#4a90d9"
-ACCENT_DARK = "#357abd"
-TEXT = "#1f2328"
-MUTED = "#888888"
-CARD_BORDER = "#e0ddd8"
+BG = "#FAFAFD"
+WHITE = "#FFFFFF"
+ACCENT = "#9368E9"
+ACCENT_DARK = "#7A4FCF"
+TEXT = "#1E1A2D"
+MUTED = "#9098A7"
+CARD_BORDER = "#E8E0F5"
 
 FONT_TITLE = ("PingFang SC", 18, "bold")
 FONT_SECTION = ("PingFang SC", 14, "bold")
@@ -65,24 +65,24 @@ class QAKB:
         left.grid_columnconfigure(1, weight=1)
 
         # 搜索行
-        s = ctk.CTkFrame(left, fg_color=WHITE, corner_radius=8,
+        s = ctk.CTkFrame(left, fg_color=WHITE, corner_radius=16,
                          border_width=1, border_color=CARD_BORDER)
         s.grid(row=1, column=0, columnspan=2, sticky="ew", pady=4)
         s.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(s, text="🔍", font=("", 14)
                      ).grid(row=0, column=0, padx=(10, 4), pady=8)
         self.search_e = ctk.CTkEntry(s, font=FONT_BODY, height=34,
-                                     fg_color="#f0ede8", border_width=0)
+                                     fg_color="#F5F6FA", border_width=0)
         self.search_e.grid(row=0, column=1, sticky="ew", padx=4, pady=8)
         self.search_e.bind("<Return>", lambda e: self._do_search())
         ctk.CTkButton(s, text="搜索", command=self._do_search,
                       fg_color=ACCENT, hover_color=ACCENT_DARK,
-                      height=34, width=70, corner_radius=6,
+                      height=34, width=70, corner_radius=16,
                       text_color="white", font=("", 12, "bold")
                       ).grid(row=0, column=2, padx=(4, 10), pady=8)
 
         # 结果列表
-        rf = ctk.CTkFrame(left, fg_color=WHITE, corner_radius=8,
+        rf = ctk.CTkFrame(left, fg_color=WHITE, corner_radius=16,
                           border_width=1, border_color=CARD_BORDER)
         rf.grid(row=2, column=0, columnspan=2, sticky="nsew", pady=4)
         rf.grid_rowconfigure(0, weight=1)
@@ -95,7 +95,7 @@ class QAKB:
         self.result_count.grid(row=3, column=0, columnspan=2, sticky="w")
 
         # ── 右侧：详情 ──
-        right = ctk.CTkFrame(main, fg_color=WHITE, corner_radius=10,
+        right = ctk.CTkFrame(main, fg_color=WHITE, corner_radius=16,
                              border_width=1, border_color=CARD_BORDER,
                              width=360)
         right.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
@@ -115,7 +115,7 @@ class QAKB:
         ctk.CTkButton(bottom, text="＋ 新增问答",
                       command=self._show_add_dialog,
                       fg_color=ACCENT, hover_color=ACCENT_DARK,
-                      height=38, width=120, corner_radius=8,
+                      height=38, width=120, corner_radius=16,
                       text_color="white", font=("", 13, "bold")
                       ).pack(side="left")
 
@@ -130,8 +130,8 @@ class QAKB:
             w.destroy()
 
         for r in results:
-            card = ctk.CTkFrame(self.result_list, fg_color="#f8f7f4",
-                                corner_radius=8, height=50)
+            card = ctk.CTkFrame(self.result_list, fg_color="#F5F6FA",
+                                corner_radius=16, height=50)
             card.pack(fill="x", pady=2)
             card.pack_propagate(False)
 
@@ -191,8 +191,8 @@ class QAKB:
         ta_text = rec.get("ta_answer") or "（暂未回答）"
         ta_color = TEXT if rec.get("ta_answer") else MUTED
         self.ta_e = ctk.CTkTextbox(self.detail_frame, font=FONT_BODY,
-                                   height=60, fg_color="#f0ede8",
-                                   border_width=0, corner_radius=6,
+                                   height=60, fg_color="#F5F6FA",
+                                   border_width=0, corner_radius=16,
                                    text_color=ta_color)
         self.ta_e.insert("1.0", ta_text)
         self.ta_e.pack(fill="x", pady=(0, 4))
@@ -207,8 +207,8 @@ class QAKB:
         sup_text = rec.get("teacher_supplement") or "（暂未补充）"
         sup_color = TEXT if rec.get("teacher_supplement") else MUTED
         self.sup_e = ctk.CTkTextbox(self.detail_frame, font=FONT_BODY,
-                                    height=60, fg_color="#f0ede8",
-                                    border_width=0, corner_radius=6,
+                                    height=60, fg_color="#F5F6FA",
+                                    border_width=0, corner_radius=16,
                                     text_color=sup_color)
         self.sup_e.insert("1.0", sup_text)
         self.sup_e.pack(fill="x", pady=(0, 4))
@@ -219,13 +219,13 @@ class QAKB:
         ctk.CTkButton(btn_frame, text="💾 保存修改",
                       command=self._save_edit,
                       fg_color=ACCENT, hover_color=ACCENT_DARK,
-                      height=32, corner_radius=6,
+                      height=32, corner_radius=16,
                       text_color="white", font=("", 12, "bold")
                       ).pack(side="left")
         ctk.CTkButton(btn_frame, text="🗑 删除",
                       command=self._confirm_delete,
                       fg_color="transparent", text_color="#b85450",
-                      hover_color="#ffebee", height=32, corner_radius=6,
+                      hover_color="#ffebee", height=32, corner_radius=16,
                       border_width=1, border_color="#b85450",
                       font=("", 12)
                       ).pack(side="right")
@@ -317,7 +317,7 @@ class QAKB:
                      ).pack(padx=pad, pady=(10, 16), fill="x")
         ctk.CTkButton(d, text="✅ 保存", command=save,
                       fg_color=ACCENT, hover_color=ACCENT_DARK,
-                      height=36, corner_radius=8,
+                      height=36, corner_radius=16,
                       text_color="white", font=("", 13, "bold")
                       ).pack(padx=pad, pady=(0, 16), fill="x")
 
