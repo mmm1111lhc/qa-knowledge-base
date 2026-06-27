@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>群问答知识库</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:#f5f2ed; color:#1f2328; }
+.header { background:#4a90d9; color:white; padding:14px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:100; }
+.header h1 { font-size:18px; flex:1; }
+.role-tabs { display:flex; gap:4px; }
+.role-btn { padding:6px 14px; border-radius:16px; border:none; font-size:13px; cursor:pointer; background:rgba(255,255,255,0.2); color:white; font-weight:500; }
+.role-btn.active { background:white; color:#4a90d9; }
+.container { max-width:900px; margin:0 auto; padding:12px; }
+
+/* 卡片 */
+.card { background:white; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+.card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.card-role { font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; }
+.role-student { background:#e3f2fd; color:#1565c0; }
+.role-ta { background:#e8f5e9; color:#2e7d32; }
+.role-teacher { background:#fff3e0; color:#e65100; }
+.card-time { font-size:11px; color:#999; }
+.card-question { font-size:15px; font-weight:600; margin-bottom:6px; }
+.card-answer { font-size:14px; color:#555; padding:8px 12px; background:#f8f7f4; border-radius:8px; margin:4px 0; }
+.card-tags { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+.tag { font-size:11px; padding:2px 8px; background:#e3f2fd; color:#4a90d9; border-radius:4px; }
+.tag.ta-tag { background:#e8f5e9; color:#2e7d32; }
+.tag.teacher-tag { background:#fff3e0; color:#e65100; }
+
+/* 表单 */
+.form-group { margin-bottom:12px; }
+.form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:4px; }
+textarea, input[type="text"] { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; }
+textarea:focus, input:focus { outline:none; border-color:#4a90d9; box-shadow:0 0 0 2px rgba(74,144,217,0.15); }
+
+.btn { padding:10px 20px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+.btn-primary { background:#4a90d9; color:white; }
+.btn-primary:hover { background:#357abd; }
+.btn-success { background:#43a047; color:white; }
+.btn-success:hover { background:#388e3c; }
+.btn-amber { background:#ef6c00; color:white; }
+.btn-amber:hover { background:#e65100; }
+.btn-outline { background:transparent; border:1px solid #ddd; color:#666; }
+.btn-small { padding:6px 14px; font-size:12px; }
+
+/* 画板 */
+.canvas-area { border:1px solid #ddd; border-radius:8px; overflow:hidden; margin-bottom:8px; position:relative; }
+canvas { display:block; width:100%; height:200px; background:white; touch-action:none; }
+.canvas-toolbar { display:flex; gap:6px; padding:6px 8px; background:#f8f7f4; flex-wrap:wrap; }
+.canvas-toolbar button { padding:4px 10px; border:1px solid #ddd; border-radius:4px; background:white; font-size:12px; cursor:pointer; }
+.canvas-toolbar button.active { border-color:#4a90d9; background:#e3f2fd; }
+.drawing-preview { max-width:100%; max-height:150px; margin-top:4px; border-radius:6px; }
+
+/* 录音 */
+.record-btn { width:48px; height:48px; border-radius:50%; border:none; font-size:20px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+.record-btn.idle { background:#f5f5f5; color:#666; }
+.record-btn.recording { background:#e53935; color:white; animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.1); } }
+.record-btn.done { background:#43a047; color:white; }
+.audio-player { width:100%; margin-top:4px; }
+
+/* 统计 */
+.stats { display:flex; gap:16px; padding:12px 0; flex-wrap:wrap; }
+.stat-item { text-align:center; flex:1; min-width:80px; }
+.stat-num { font-size:24px; font-weight:700; color:#4a90d9; }
+.stat-label { font-size:12px; color:#999; }
+
+/* 空状态 */
+.empty { text-align:center; padding:40px 16px; color:#999; }
+.empty-icon { font-size:48px; margin-bottom:12px; }
+
+/* 移动端适配 */
+@media(max-width:600px) {
+  .header { padding:10px 12px; }
+  .header h1 { font-size:16px; }
+  .card { padding:12px; }
+}
+
+/* 新问题通知 */
+.notify-dot { display:inline-block; width:8px; height:8px; background:#e53935; border-radius:50%; margin-left:4px; }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="header">
+  <h1>💬 群问答</h1>
+  <div class="role-tabs">
+    <button class="role-btn" onclick="setRole('student')" id="r-student">🙋 提问</button>
+    <button class="role-btn" onclick="setRole('ta')" id="r-ta">👩‍🏫 助教</button>
+    <button class="role-btn" onclick="setRole('teacher')" id="r-teacher">👨‍🏫 老师</button>
+  </div>
+</div>
+
+<div class="container" id="app">
+  <div id="stats" class="stats"></div>
+  <div id="content"></div>
+</div>
+
+<script>
+// ── 状态 ──
+let role = localStorage.getItem("qa_role") || "student";
+let questions = [];
+let currentCanvas = null;
+let isDrawing = false;
+let mediaRecorder = null;
+let audioChunks = [];
+
+// ── 角色切换 ──
+function setRole(r) {
+  role = r;
+  localStorage.setItem("qa_role", r);
+  document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("r-" + r).classList.add("active");
+  render();
+}
+
+function getRoleLabel(r) {
+  return {student: "学员", ta: "助教", teacher: "老师"}[r] || r;
+}
+
+// ── API ──
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: {"Content-Type": "application/json"},
+    ...opts
+  });
+  return res.json();
+}
+
+async function loadQuestions() {
+  questions = await api("/api/questions");
+  updateStats();
+  render();
+}
+
+function updateStats() {
+  const total = questions.length;
+  const ta = questions.filter(q => q.ta_answer).length;
+  const t = questions.filter(q => q.teacher_supplement).length;
+  const pending = questions.filter(q => !q.ta_answer).length;
+  document.getElementById("stats").innerHTML = `
+    <div class="stat-item"><div class="stat-num">${total}</div><div class="stat-label">总问题</div></div>
+    <div class="stat-item"><div class="stat-num">${ta}</div><div class="stat-label">已回答</div></div>
+    <div class="stat-item"><div class="stat-num">${t}</div><div class="stat-label">已补充</div></div>
+    <div class="stat-item"><div class="stat-num">${pending}</div><div class="stat-label">待回答</div></div>
+  `;
+}
+
+// ── 画板 ──
+function initCanvas(canvasId, toolbarId) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  let drawing = false;
+  let color = "#1f2328";
+  let size = 3;
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = Math.min(rect.width * 2, 800);
+    canvas.height = 400;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    return {x, y};
+  }
+
+  function start(e) {
+    e.preventDefault();
+    drawing = true;
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+
+  function move(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = size;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+
+  function end(e) {
+    drawing = false;
+    ctx.beginPath();
+  }
+
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  canvas.addEventListener("mouseup", end);
+  canvas.addEventListener("mouseleave", end);
+  canvas.addEventListener("touchstart", start, {passive: false});
+  canvas.addEventListener("touchmove", move, {passive: false});
+  canvas.addEventListener("touchend", end, {passive: false});
+
+  // 工具栏
+  document.querySelectorAll(`#${toolbarId} [data-color]`).forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(`#${toolbarId} [data-color]`).forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      color = btn.dataset.color;
+    });
+  });
+  document.querySelectorAll(`#${toolbarId} [data-size]`).forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(`#${toolbarId} [data-size]`).forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      size = parseInt(btn.dataset.size);
+    });
+  });
+
+  // 清除
+  document.getElementById(canvasId + "-clear")?.addEventListener("click", () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  });
+
+  return {
+    getData() { return canvas.toDataURL("image/png"); },
+    clear() { ctx.clearRect(0, 0, canvas.width, canvas.height); },
+    isEmpty() {
+      const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      return d.every(v => v === 0);
+    }
+  };
+}
+
+// ── 录音 ──
+async function initRecorder(btnId, playerId) {
+  const btn = document.getElementById(btnId);
+  const player = document.getElementById(playerId);
+  let stream = null;
+  let recorder = null;
+  let audioUrl = null;
+
+  btn.addEventListener("click", async () => {
+    if (recorder && recorder.state === "recording") {
+      recorder.stop();
+      btn.className = "record-btn done";
+      btn.textContent = "✅";
+      return;
+    }
+    if (audioUrl) {
+      // 重新录制
+      audioUrl = null;
+      player.innerHTML = "";
+    }
+    try {
+      if (!stream) stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      audioChunks = [];
+      recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = e => audioChunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunks, {type: "audio/webm"});
+        audioUrl = URL.createObjectURL(blob);
+        player.innerHTML = `<audio class="audio-player" src="${audioUrl}" controls></audio>`;
+        btn.textContent = "🔴";
+        btn.className = "record-btn done";
+      };
+      recorder.start();
+      btn.textContent = "⏹";
+      btn.className = "record-btn recording";
+    } catch(e) {
+      alert("无法录音: " + e.message);
+    }
+  });
+
+  return {
+    getBlob: async () => {
+      if (audioUrl) {
+        const res = await fetch(audioUrl);
+        return await res.blob();
+      }
+      return null;
+    },
+    hasAudio: () => !!audioUrl,
+    reset() {
+      audioUrl = null;
+      player.innerHTML = "";
+      btn.textContent = "🎤";
+      btn.className = "record-btn idle";
+    }
+  };
+}
+
+// ── 渲染 ──
+function render() {
+  const el = document.getElementById("content");
+  if (role === "student") renderStudent(el);
+  else if (role === "ta") renderTA(el);
+  else renderTeacher(el);
+}
+
+// ===== 学员视图 =====
+function renderStudent(el) {
+  let drawingId = 0;
+  el.innerHTML = `
+    <div class="card">
+      <h3 style="margin-bottom:10px;">🙋 提交问题</h3>
+      <div class="form-group">
+        <label>你的名字（选填）</label>
+        <input type="text" id="s-name" placeholder="输入名字或匿名">
+      </div>
+      <div class="form-group">
+        <label>问题描述</label>
+        <textarea id="s-question" rows="3" placeholder="描述你的问题..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>手写/画图（行测图形题可直接画）</label>
+        <div class="canvas-area">
+          <canvas id="s-canvas"></canvas>
+          <div class="canvas-toolbar" id="s-tb">
+            <button data-color="#1f2328" class="active" style="background:#1f2328;color:white;">●</button>
+            <button data-color="#e53935" style="background:#e53935;color:white;">●</button>
+            <button data-color="#1565c0" style="background:#1565c0;color:white;">●</button>
+            <button data-color="#2e7d32" style="background:#2e7d32;color:white;">●</button>
+            <button data-size="3" class="active">细</button>
+            <button data-size="8">中</button>
+            <button data-size="16">粗</button>
+            <button id="s-canvas-clear">🗑 清除</button>
+          </div>
+        </div>
+        <img id="s-preview" class="drawing-preview" style="display:none;">
+      </div>
+      <div class="form-group">
+        <label>📷 上传图片（截图/拍照，可选）</label>
+        <input type="file" id="s-image" accept="image/*" style="font-size:14px;padding:4px;">
+        <img id="s-image-preview" class="drawing-preview" style="display:none;">
+      </div>
+      <div class="form-group">
+        <label>🏷 标签（选填，如: 图形推理,资料分析）</label>
+        <input type="text" id="s-tags" placeholder="多个用逗号分隔">
+      </div>
+      <button class="btn btn-primary" onclick="submitQuestion()" style="width:100%;">✅ 提交问题</button>
+    </div>
+    <h3 style="margin:12px 0 8px;">📋 我的问题</h3>
+    <div id="s-my-questions"></div>
+  `;
+
+  const sc = initCanvas("s-canvas", "s-tb");
+  document.sc = sc;
+
+  // 显示已有问题
+  renderStudentQuestions();
+}
+
+async function submitQuestion() {
+  const q = document.getElementById("s-question").value.trim();
+  const name = document.getElementById("s-name").value.trim();
+  const tags = document.getElementById("s-tags").value.trim();
+  if (!q && document.sc.isEmpty() && !document.getElementById("s-image").files[0]) {
+    alert("请输入问题、画图或上传图片");
+    return;
+  }
+
+  // 提交问题
+  const result = await api("/api/question", {
+    method: "POST",
+    body: JSON.stringify({
+      question: q || "(图示题)",
+      asker: name || "匿名学员",
+      tags: tags
+    })
+  });
+
+  // 上传手写图片
+  if (!document.sc.isEmpty()) {
+    const blob = await (await fetch(document.sc.getData())).blob();
+    const fd = new FormData();
+    fd.append("file", blob, `drawing_${Date.now()}.png`);
+    await fetch("/api/upload", {method: "POST", body: fd});
+  }
+
+  // 上传选择的图片
+  const fileInput = document.getElementById("s-image");
+  if (fileInput.files[0]) {
+    const fd = new FormData();
+    fd.append("file", fileInput.files[0]);
+    await fetch("/api/upload", {method: "POST", body: fd});
+  }
+
+  // 清空
+  document.getElementById("s-question").value = "";
+  document.sc.clear();
+  document.getElementById("s-tags").value = "";
+  fileInput.value = "";
+  document.getElementById("s-image-preview").style.display = "none";
+  loadQuestions();
+}
+
+function renderStudentQuestions() {
+  const el = document.getElementById("s-my-questions");
+  if (!el) return;
+  const mine = questions.filter(q => q.asker && q.asker !== "匿名学员").slice(0, 20);
+  if (mine.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><div>还没有提交过问题</div></div>';
+    return;
+  }
+  el.innerHTML = mine.map(q => `
+    <div class="card">
+      <div class="card-header">
+        <span class="card-role role-student">${q.asker || "匿名"}</span>
+        <span class="card-time">${q.created_at_str || ""}</span>
+      </div>
+      <div class="card-question">❓ ${q.question}</div>
+      ${q.ta_answer ? `<div class="card-answer">👩‍🏫 ${q.ta_answer}</div>` : '<div style="color:#999;font-size:13px;">⏳ 等待助教回答...</div>'}
+      ${q.teacher_supplement ? `<div class="card-answer">👨‍🏫 ${q.teacher_supplement}</div>` : ""}
+    </div>
+  `).join("");
+}
+
+// ===== 助教视图 =====
+function renderTA(el) {
+  el.innerHTML = `
+    <div id="ta-pending"></div>
+    <h3 style="margin:12px 0 8px;">📋 全部问题</h3>
+    <div id="ta-all"></div>
+  `;
+  renderTAView();
+}
+
+function renderTAView() {
+  const pending = questions.filter(q => !q.ta_answer);
+  const answered = questions.filter(q => q.ta_answer);
+
+  document.getElementById("ta-pending").innerHTML = pending.length === 0
+    ? '<div class="card" style="text-align:center;color:#999;">✅ 所有问题都已回答</div>'
+    : pending.map(q => renderTACard(q)).join("");
+
+  document.getElementById("ta-all").innerHTML = answered.map(q => renderTACard(q)).join("");
+
+  // 初始化画板和录音
+  pending.forEach(q => {
+    setTimeout(() => {
+      if (document.getElementById(`ta-canvas-${q.id}`)) {
+        initCanvas(`ta-canvas-${q.id}`, `ta-tb-${q.id}`);
+        initRecorder(`ta-record-${q.id}`, `ta-player-${q.id}`);
+      }
+    }, 100);
+  });
+}
+
+function renderTACard(q) {
+  return `
+    <div class="card" id="ta-card-${q.id}">
+      <div class="card-header">
+        <span class="card-role role-student">${q.asker || "匿名"}</span>
+        <span class="card-time">${q.created_at_str || ""}</span>
+      </div>
+      <div class="card-question">❓ ${q.question}</div>
+      ${!q.ta_answer ? `
+        <div style="margin-top:8px;">
+          <textarea id="ta-text-${q.id}" rows="2" placeholder="输入回答..." style="font-size:14px;"></textarea>
+          <div style="display:flex;gap:8px;align-items:center;margin:6px 0;">
+            <div style="flex:1;"><canvas id="ta-canvas-${q.id}" style="height:120px;"></canvas></div>
+            <div style="flex:1;">
+              <div class="canvas-toolbar" id="ta-tb-${q.id}" style="padding:4px;">
+                <button data-color="#1f2328" class="active">●</button>
+                <button data-color="#e53935">●</button>
+                <button data-color="#1565c0">●</button>
+                <button data-size="3" class="active">细</button>
+                <button data-size="8">中</button>
+                <button id="ta-canvas-${q.id}-clear">清除</button>
+              </div>
+              <button class="record-btn idle" id="ta-record-${q.id}" style="width:40px;height:40px;font-size:16px;">🎤</button>
+              <div id="ta-player-${q.id}"></div>
+            </div>
+          </div>
+          <button class="btn btn-success btn-small" onclick="submitTAAnswer(${q.id})">✅ 提交回答</button>
+        </div>
+      ` : `
+        <div class="card-answer">👩‍🏫 ${q.ta_answer}</div>
+        ${q.teacher_supplement ? `<div class="card-answer" style="border-left:3px solid #ef6c00;">👨‍🏫 ${q.teacher_supplement}</div>` : ""}
+        <div style="margin-top:6px;">
+          <button class="btn btn-outline btn-small" onclick="deleteQ(${q.id})">🗑 删除</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+async function submitTAAnswer(qid) {
+  const text = document.getElementById(`ta-text-${qid}`).value.trim();
+  if (!text) { alert("请输入回答文字"); return; }
+  await api(`/api/question/${qid}`, {
+    method: "PUT",
+    body: JSON.stringify({ta_answer: text})
+  });
+  loadQuestions();
+}
+
+// ===== 老师视图 =====
+function renderTeacher(el) {
+  el.innerHTML = `
+    <div id="t-pending"></div>
+    <h3 style="margin:12px 0 8px;">📋 已回答的问题</h3>
+    <div id="t-all"></div>
+  `;
+  renderTeacherView();
+}
+
+function renderTeacherView() {
+  const withTA = questions.filter(q => q.ta_answer && !q.teacher_supplement);
+  const done = questions.filter(q => q.ta_answer && q.teacher_supplement);
+
+  document.getElementById("t-pending").innerHTML = withTA.length === 0
+    ? '<div class="card" style="text-align:center;color:#999;">✅ 所有已回答的问题都已补充</div>'
+    : withTA.map(q => renderTeacherCard(q, true)).join("");
+
+  document.getElementById("t-all").innerHTML = done.map(q => renderTeacherCard(q, false)).join("");
+}
+
+function renderTeacherCard(q, needsSupplement) {
+  return `
+    <div class="card">
+      <div class="card-header">
+        <span class="card-role role-student">${q.asker || "匿名"}</span>
+        <span class="card-time">${q.created_at_str || ""}</span>
+      </div>
+      <div class="card-question">❓ ${q.question}</div>
+      <div class="card-answer">👩‍🏫 TA: ${q.ta_answer}</div>
+      ${needsSupplement ? `
+        <div style="margin-top:8px;">
+          <textarea id="t-sup-${q.id}" rows="2" placeholder="输入补充说明..." style="font-size:14px;"></textarea>
+          <div style="display:flex;gap:8px;margin:6px 0;">
+            <canvas id="t-canvas-${q.id}" style="flex:1;height:100px;"></canvas>
+            <div>
+              <div class="canvas-toolbar" id="t-tb-${q.id}" style="padding:4px;">
+                <button data-color="#1f2328" class="active">●</button>
+                <button data-color="#e53935">●</button>
+                <button data-size="3" class="active">细</button>
+                <button data-size="8">中</button>
+                <button id="t-canvas-${q.id}-clear">清除</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-amber btn-small" onclick="submitTeacherSup(${q.id})">📝 提交补充</button>
+        </div>
+      ` : `
+        <div class="card-answer" style="border-left:3px solid #ef6c00;">👨‍🏫 ${q.teacher_supplement}</div>
+        <button class="btn btn-outline btn-small" onclick="deleteQ(${q.id})">🗑 删除</button>
+      `}
+    </div>
+  `;
+}
+
+async function submitTeacherSup(qid) {
+  const text = document.getElementById(`t-sup-${qid}`).value.trim();
+  if (!text) { alert("请输入补充内容"); return; }
+  await api(`/api/question/${qid}`, {
+    method: "PUT",
+    body: JSON.stringify({teacher_supplement: text})
+  });
+  loadQuestions();
+}
+
+async function deleteQ(qid) {
+  if (!confirm("确定删除？")) return;
+  await api(`/api/question/${qid}`, {method: "DELETE"});
+  loadQuestions();
+}
+
+// ── 初始化 ──
+setRole(role);
+loadQuestions();
+// 图片预览
+document.addEventListener("change", function(e) {
+  if (e.target.id === "s-image" && e.target.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const prev = document.getElementById("s-image-preview");
+      prev.src = ev.target.result;
+      prev.style.display = "block";
+    };
+    reader.readAsDataURL(e.target.files[0]);
+  }
+});
+
+// 每10秒自动刷新
+setInterval(loadQuestions, 10000);
+</script>
+</body>
+</html>
